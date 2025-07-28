@@ -49,12 +49,8 @@
 
 # Environment Configuration
 - name: Create SigNoz environment file
-  copy:
-    content: |
-      # SigNoz Configuration
-      DOCKER_TAG={{ signoz_version }}
-      OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-      SIGNOZ_LOCAL_DB_PATH={{ signoz_data_dir }}
+  template:
+    src: |
     dest: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/.env"
     owner: vagrant
     group: vagrant
@@ -83,8 +79,8 @@
   community.docker.docker_compose_v2:
     project_src: "{{ signoz_install_dir }}/deploy/docker"
     state: present
-    pull: true
-    recreate: smart
+    pull: missing
+    recreate: always
     remove_orphans: true
   become_user: vagrant
   register: signoz_deployment
