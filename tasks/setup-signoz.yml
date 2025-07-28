@@ -50,7 +50,7 @@
 # Environment Configuration
 - name: Create SigNoz environment file
   template:
-    src: |
+    src: templates/signoz.env.j2
     dest: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/.env"
     owner: vagrant
     group: vagrant
