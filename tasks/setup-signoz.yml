@@ -1,3 +1,4 @@
+
 # User Management
 - name: Create SigNoz system user
   user:
@@ -48,8 +49,12 @@
 
 # Environment Configuration
 - name: Create SigNoz environment file
-  template:
-    src: templates/signoz.env.j2
+  copy:
+    content: |
+      # SigNoz Configuration
+      DOCKER_TAG={{ signoz_version }}
+      OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+      SIGNOZ_LOCAL_DB_PATH={{ signoz_data_dir }}
     dest: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/.env"
     owner: vagrant
     group: vagrant
@@ -132,21 +137,15 @@
   debug:
     msg: "OTEL HTTP (4318): {{ 'OK' if not otel_http_health.failed else 'FAILED' }}"
 
-- name: Check specific SigNoz containers
-  docker_container_info:
-    name: "{{ item }}"
+- name: Get SigNoz container status
+  shell: 'docker ps --filter name=signoz --format "table {{{{ .Names }}}}\t{{{{ .Status }}}}"'
   register: container_status
-  loop:
-    - signoz-query-service
-    - signoz-otel-collector
-    - signoz-clickhouse
-    - signoz-alertmanager
+  ignore_errors: true
 
 - name: Display container status
   debug:
-    msg: "{{ item.item }}: {{ 'Running' if item.exists and item.container.State.Status == 'running' else 'Not Running' }}"
-  loop: "{{ container_status.results }}"
-  when: item is defined
+    var: container_status.stdout_lines
+  when: container_status.stdout_lines is defined
 
 # Performance monitoring setup
 - name: Create SigNoz monitoring script
