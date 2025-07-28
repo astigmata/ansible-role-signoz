@@ -80,7 +80,7 @@
   failed_when: not compose_file.stat.exists
 
 - name: Deploy SigNoz with Docker Compose
-  ansible.builtin.docker_compose:
+  community.docker.docker_compose_v2:  :
     project_src: "{{ signoz_install_dir }}/deploy/docker"
     state: present
     pull: true
