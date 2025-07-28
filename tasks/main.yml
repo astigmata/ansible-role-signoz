@@ -3,3 +3,6 @@
 
 - name: Setup Signoz
   import_tasks: tasks/setup-signoz.yml
+
+- name: Health Check
+  import_tasks: tasks/final-check.yml
