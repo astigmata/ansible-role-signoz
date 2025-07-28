@@ -1,0 +1,22 @@
+[Unit]
+Description=SigNoz Observability Platform
+Requires=docker.service
+After=docker.service
+StartLimitInterval=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory={{ signoz_install_dir }}/deploy/docker/clickhouse-setup
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose restart
+TimeoutStartSec=300
+TimeoutStopSec=120
+User=vagrant
+Group=docker
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

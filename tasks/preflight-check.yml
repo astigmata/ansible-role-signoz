@@ -1,0 +1,21 @@
+- name: Update apt package cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install system prerequisites
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - git
+      - htop
+      - nano
+      - unzip
+      - python3-pip
+      - python3-requests
+      - python3-docker
+    state: present

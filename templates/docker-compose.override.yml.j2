@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  clickhouse:
+    volumes:
+      - signoz-clickhouse-data:/var/lib/clickhouse/
+      - {{ signoz_data_dir }}/clickhouse:/var/lib/clickhouse/data
+    ports:
+      - "8123:8123"  # Expose ClickHouse HTTP interface
+    environment:
+      - CLICKHOUSE_DB=signoz
+      - CLICKHOUSE_USER=signoz
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+
+  zookeeper:
+    volumes:
+      - signoz-zookeeper-data:/data
+      - {{ signoz_data_dir }}/zookeeper:/datalog
+
+  signoz:
+    ports:
+      - "8080:8080"
+    environment:
+      - TELEMETRY_ENABLED=true
+      - DEPLOYMENT_TYPE=docker-standalone-amd
+
+  otel-collector:
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=signoz-otel-collector
+volumes:
+  signoz-clickhouse-data:
+    external: true
+  signoz-zookeeper-data:
+    external: true
+  signoz-alertmanager-data:
+    external: true

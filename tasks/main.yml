@@ -1,0 +1,5 @@
+- name: Preflight check
+  import_tasks: tasks/preflight-check.yml
+
+- name: Setup Signoz
+  import_tasks: tasks/setup-signoz.yml

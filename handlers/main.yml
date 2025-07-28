@@ -1,0 +1,20 @@
+- name: reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: enable signoz service
+  systemd:
+    name: signoz
+    enabled: true
+
+- name: restart signoz
+  shell: |
+    cd {{ signoz_install_dir }}/deploy/docker/clickhouse-setup
+    docker compose restart
+  become_user: vagrant
+  ignore_errors: true
+
+- name: restart docker
+  systemd:
+    name: docker
+    state: restarted

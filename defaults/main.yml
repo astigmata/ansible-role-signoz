@@ -1,0 +1,5 @@
+signoz_version: "0.91.0"
+signoz_install_dir: "/opt/signoz"
+signoz_data_dir: "/opt/signoz-data"
+signoz_config_dir: "/opt/signoz-config"
+signoz_user: "signoz"
