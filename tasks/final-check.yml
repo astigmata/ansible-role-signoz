@@ -7,7 +7,7 @@
     timeout: 10
     return_content: yes
   register: query_service_health
-  until: query_service_health.status == 200 and query_service_health.json.status is defined and query_service_health.json.status == "healthy"
+  until: query_service_health.status == 200 and query_service_health.json.status is defined and query_service_health.json.status == "ok"
   retries: 15
   delay: 10
   ignore_errors: true
@@ -56,7 +56,6 @@
     msg: "{{ container_status.container.State.Status | default('Container not found') }}"
   when: container_status.exists
 
-# Performance monitoring setup
 - name: Create SigNoz monitoring script
   ansible.builtin.copy:
     content: |
@@ -64,20 +63,19 @@
       # SigNoz Health Check Script
 
       echo "=== SigNoz Container Status ==="
-      docker ps --filter name=signoz --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      docker ps --filter name=signoz --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}\t{{ '{{' }}.Ports{{ '}}' }}"
 
       echo -e "\n=== SigNoz Service Health ==="
       curl -s -w "%{http_code}" http://localhost:8080/api/v1/health | grep -q 200 && echo "Healthy" || echo "Health check failed"
 
       echo -e "\n=== Resource Usage ==="
-      docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" $(docker ps --filter name=signoz -q)
+      docker stats --no-stream --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.CPUPerc{{ '}}' }}\t{{ '{{' }}.MemUsage{{ '}}' }}\t{{ '{{' }}.MemPerc{{ '}}' }}" $(docker ps --filter name=signoz -q)
 
       echo -e "\n=== Disk Usage ==="
       df -h {{ signoz_data_dir | default('/opt/signoz-data') }}
     dest: /usr/local/bin/signoz-status
     mode: '0755'
 
-# Final status display
 - name: Display deployment summary
   ansible.builtin.debug:
     msg: |
