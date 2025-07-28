@@ -75,13 +75,13 @@
 # SigNoz Deployment
 - name: Ensure Docker Compose file exists
   ansible.builtin.stat:
-    path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/docker-compose.yaml"
+    path: "{{ signoz_install_dir }}/deploy/docker/docker-compose.yaml"
   register: compose_file
   failed_when: not compose_file.stat.exists
 
 - name: Deploy SigNoz with Docker Compose
   ansible.builtin.docker_compose:
-    project_src: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
+    project_src: "{{ signoz_install_dir }}/deploy/docker"
     state: present
     pull: true
     recreate: smart
