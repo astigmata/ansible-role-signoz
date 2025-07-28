@@ -74,14 +74,14 @@
 
 # SigNoz Deployment
 - name: Deploy SigNoz with Docker Compose
-  shell: |
-    cd {{ signoz_install_dir }}/deploy/docker/clickhouse-setup
-    docker compose down --remove-orphans || true
-    docker compose pull
-    docker compose up -d --remove-orphans
+  ansible.builtin.docker_compose:
+    project_src: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
+    state: present
+    pull: always
+    recreate: smart
+    remove_orphans: true
   become_user: vagrant
   register: signoz_deployment
-  ignore_errors: true
 
 - name: Display deployment results
   debug:
