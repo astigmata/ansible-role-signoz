@@ -3,3 +3,5 @@ signoz_install_dir: "/opt/signoz"
 signoz_data_dir: "/opt/signoz-data"
 signoz_config_dir: "/opt/signoz-config"
 signoz_user: "signoz"
+
+vm_ip: "192.168.56.10"

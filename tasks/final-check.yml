@@ -1,97 +1,105 @@
 # Health Checks and Validation
 - name: Wait for SigNoz Query Service to be healthy
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:8080/api/v1/health"
     method: GET
     status_code: 200
+    timeout: 10
+    return_content: yes
   register: query_service_health
-  until: query_service_health.status == 200
+  until: query_service_health.status == 200 and query_service_health.json.status is defined and query_service_health.json.status == "healthy"
   retries: 15
   delay: 10
   ignore_errors: true
 
 - name: Display SigNoz health status
-  debug:
+  ansible.builtin.debug:
     msg: "SigNoz Query Service: {{ 'OK' if query_service_health.status == 200 else 'FAILED' }}"
+  when: query_service_health.status is defined
 
 - name: Test OTEL Collector gRPC endpoint
-  wait_for:
+  ansible.builtin.wait_for:
     host: localhost
     port: 4317
     timeout: 30
+    delay: 5
+    state: started
   register: otel_grpc_health
   ignore_errors: true
 
 - name: Display OTEL gRPC status
-  debug:
-    msg: "OTEL gRPC (4317): {{ 'OK' if not otel_grpc_health.failed else 'FAILED' }}"
+  ansible.builtin.debug:
+    msg: "OTEL gRPC (4317): {{ 'OK' if not otel_grpc_health.failed else 'FAILED: ' + otel_grpc_health.msg | default('Port 4317 not accessible') }}"
 
 - name: Test OTEL Collector HTTP endpoint
-  wait_for:
+  ansible.builtin.wait_for:
     host: localhost
     port: 4318
     timeout: 30
+    delay: 5
+    state: started
   register: otel_http_health
   ignore_errors: true
 
 - name: Display OTEL HTTP status
-  debug:
-    msg: "OTEL HTTP (4318): {{ 'OK' if not otel_http_health.failed else 'FAILED' }}"
+  ansible.builtin.debug:
+    msg: "OTEL HTTP (4318): {{ 'OK' if not otel_http_health.failed else 'FAILED: ' + otel_http_health.msg | default('Port 4318 not accessible') }}"
 
 - name: Get SigNoz container status
-  shell: 'docker ps --filter name=signoz --format "table {{{{ .Names }}}}\t{{{{ .Status }}}}"'
+  ansible.builtin.docker_container_info:
+    name: signoz
   register: container_status
   ignore_errors: true
 
 - name: Display container status
-  debug:
-    var: container_status.stdout_lines
-  when: container_status.stdout_lines is defined
+  ansible.builtin.debug:
+    msg: "{{ container_status.container.State.Status | default('Container not found') }}"
+  when: container_status.exists
 
 # Performance monitoring setup
 - name: Create SigNoz monitoring script
-  copy:
+  ansible.builtin.copy:
     content: |
       #!/bin/bash
       # SigNoz Health Check Script
-      
+
       echo "=== SigNoz Container Status ==="
-      docker ps --filter name=signoz --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}\t{{ '{{' }}.Ports{{ '}}' }}"
-      
+      docker ps --filter name=signoz --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
       echo -e "\n=== SigNoz Service Health ==="
-      curl -s http://localhost:8080/api/v1/health || echo "Health check failed"
-      
+      curl -s -w "%{http_code}" http://localhost:8080/api/v1/health | grep -q 200 && echo "Healthy" || echo "Health check failed"
+
       echo -e "\n=== Resource Usage ==="
-      docker stats --no-stream --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.CPUPerc{{ '}}' }}\t{{ '{{' }}.MemUsage{{ '}}' }}\t{{ '{{' }}.MemPerc{{ '}}' }}" $(docker ps --filter name=signoz -q)
-      
+      docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" $(docker ps --filter name=signoz -q)
+
       echo -e "\n=== Disk Usage ==="
-      df -h /opt/signoz-data
+      df -h {{ signoz_data_dir | default('/opt/signoz-data') }}
     dest: /usr/local/bin/signoz-status
     mode: '0755'
 
 # Final status display
 - name: Display deployment summary
-  debug:
+  ansible.builtin.debug:
     msg: |
       ==========================================
-      SigNoz v{{ signoz_version }} Deployment Complete!
+      SigNoz v{{ signoz_version | default('unknown') }} Deployment Complete!
       ==========================================
-      
+
       Access URLs:
       - Web UI: http://localhost:8080
-      - Web UI (VM): http://192.168.56.10:8080
+      - Web UI (VM): http://{{ vm_ip | default('192.168.56.10') }}:8080
       - OpenTelemetry gRPC: http://localhost:4317
       - OpenTelemetry HTTP: http://localhost:4318
-      
+
       Management Commands:
-      - Status: sudo systemctl status signoz
       - Container Status: /usr/local/bin/signoz-status
       - Logs: docker logs signoz
-      - Restart: cd /opt/signoz/deploy/docker/clickhouse-setup && docker compose restart
-      
+      - Restart: cd {{ signoz_install_dir | default('/opt/signoz') }}/deploy/docker/clickhouse-setup && docker compose restart
+
       Data Directories:
-      - Installation: {{ signoz_install_dir }}
-      - Data: {{ signoz_data_dir }}
-      
+      - Installation: {{ signoz_install_dir | default('/opt/signoz') }}
+      - Data: {{ signoz_data_dir | default('/opt/signoz-data') }}
+
       Note: SigNoz v0.91+ uses unified architecture (single container)
       ==========================================
+  when: container_status.exists

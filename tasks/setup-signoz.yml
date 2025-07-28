@@ -96,4 +96,3 @@
   notify:
     - reload systemd
     - enable signoz service
-
