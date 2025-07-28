@@ -132,15 +132,21 @@
   debug:
     msg: "OTEL HTTP (4318): {{ 'OK' if not otel_http_health.failed else 'FAILED' }}"
 
-- name: Get SigNoz container status
-  shell: 'docker ps --filter name=signoz --format "table {{{{ .Names }}}}\t{{{{ .Status }}}}"'
+- name: Check specific SigNoz containers
+  docker_container_info:
+    name: "{{ item }}"
   register: container_status
-  ignore_errors: true
+  loop:
+    - signoz-query-service
+    - signoz-otel-collector
+    - signoz-clickhouse
+    - signoz-alertmanager
 
 - name: Display container status
   debug:
-    var: container_status.stdout_lines
-  when: container_status.stdout_lines is defined
+    msg: "{{ item.item }}: {{ 'Running' if item.exists and item.container.State.Status == 'running' else 'Not Running' }}"
+  loop: "{{ container_status.results }}"
+  when: item is defined
 
 # Performance monitoring setup
 - name: Create SigNoz monitoring script
