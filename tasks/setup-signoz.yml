@@ -22,7 +22,6 @@
 - name: Create SigNoz system user
   user:
     name: "{{ signoz_user }}"
-    group: "{{ signoz_group }}"
     groups: docker
     append: true
     shell: /bin/bash
