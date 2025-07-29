@@ -1,7 +1,18 @@
+---
+# SigNoz Configuration
 signoz_version: "0.91.0"
 signoz_install_dir: "/opt/signoz"
 signoz_data_dir: "/opt/signoz-data"
 signoz_config_dir: "/opt/signoz-config"
-signoz_user: "signoz"
 
-vm_ip: "192.168.56.10"
+# User Management - Plus besoin de ansible_user
+signoz_user: "signoz"
+signoz_group: "signoz"
+signoz_deployment_user: "{{ ansible_env.USER | default('ubuntu') }}"
+
+# Network Configuration
+vm_ip: "{{ ansible_default_ipv4.address | default('localhost') }}"
+
+# Docker Configuration
+docker_compose_path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
+signoz_container_recreate: "smart"

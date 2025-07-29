@@ -1,27 +1,56 @@
+---
+# Docker Permission Management
+- name: Ensure Docker socket has correct permissions
+  file:
+    path: /var/run/docker.sock
+    owner: root
+    group: docker
+    mode: '0664'
+  become: true
+
+- name: Get current username for deployment
+  command: whoami
+  register: current_user
+  changed_when: false
+  become: false
+
+- name: Set deployment user variable
+  set_fact:
+    deployment_user: "{{ current_user.stdout }}"
 
 # User Management
 - name: Create SigNoz system user
   user:
     name: "{{ signoz_user }}"
+    group: "{{ signoz_group }}"
     groups: docker
     append: true
     shell: /bin/bash
     system: true
     create_home: true
+  become: true
 
-- name: Add {{ ansible_user }} user to docker group
+- name: Add deployment user to docker group
   user:
-    name: "{{ ansible_user }}"
+    name: "{{ deployment_user }}"
     groups: docker
     append: true
+  become: true
+
+- name: Test Docker access for deployment user
+  command: docker ps
+  become_user: "{{ deployment_user }}"
+  become: true
+  register: docker_test
+  failed_when: docker_test.rc != 0
 
 # Directory Structure
 - name: Create SigNoz directories
   file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ deployment_user }}"
+    group: "{{ deployment_user }}"
     mode: '0755'
   loop:
     - "{{ signoz_install_dir }}"
@@ -31,6 +60,7 @@
     - "{{ signoz_data_dir }}/zookeeper"
     - "{{ signoz_data_dir }}/alertmanager"
     - "/var/log/signoz"
+  become: true
 
 # SigNoz Repository and Configuration
 - name: Clone SigNoz repository
@@ -39,50 +69,57 @@
     dest: "{{ signoz_install_dir }}"
     version: "v{{ signoz_version }}"
     force: true
+  become_user: "{{ deployment_user }}"
+  become: true
 
 - name: Set proper ownership of SigNoz directory
   file:
     path: "{{ signoz_install_dir }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ deployment_user }}"
+    group: "{{ deployment_user }}"
     recurse: true
+  become: true
 
 # Environment Configuration
 - name: Create SigNoz environment file
   template:
     src: templates/signoz.env.j2
-    dest: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/.env"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    dest: "{{ docker_compose_path }}/.env"
+    owner: "{{ deployment_user }}"
+    group: "{{ deployment_user }}"
     mode: '0644'
+  become: true
   notify: restart signoz
 
 # Remove any existing override file that might be invalid
 - name: Remove existing docker-compose override file
   file:
-    path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/docker-compose.override.yml"
+    path: "{{ docker_compose_path }}/docker-compose.override.yml"
     state: absent
+  become: true
 
 # Clean up any conflicting Docker networks
 - name: Remove existing signoz-net network if it conflicts
-  shell: docker network rm signoz-net || true
+  command: docker network rm signoz-net
+  become_user: "{{ deployment_user }}"
+  become: true
   ignore_errors: true
 
 # SigNoz Deployment
 - name: Ensure Docker Compose file exists
-  ansible.builtin.stat:
-    path: "{{ signoz_install_dir }}/deploy/docker/docker-compose.yaml"
+  stat:
+    path: "{{ docker_compose_path }}/docker-compose.yaml"
   register: compose_file
   failed_when: not compose_file.stat.exists
 
-- name: Deploy SigNoz with Docker Compose
-  community.docker.docker_compose_v2:
-    project_src: "{{ signoz_install_dir }}/deploy/docker"
-    state: present
-    pull: missing
-    recreate: always
-    remove_orphans: true
-  become_user: "{{ ansible_user }}"
+- name: Deploy SigNoz with Docker Compose (using shell with sg)
+  shell: |
+    cd {{ docker_compose_path }}
+    sg docker -c "docker compose up -d --remove-orphans"
+  become_user: "{{ deployment_user }}"
+  become: true
+  args:
+    chdir: "{{ docker_compose_path }}"
   register: signoz_deployment
 
 - name: Display deployment results
@@ -95,6 +132,7 @@
     src: templates/signoz.service.j2
     dest: /etc/systemd/system/signoz.service
     mode: '0644'
+  become: true
   notify:
     - reload systemd
     - enable signoz service
