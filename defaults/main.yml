@@ -5,15 +5,12 @@ signoz_install_dir: "/opt/signoz"
 signoz_data_dir: "/opt/signoz-data"
 signoz_config_dir: "/opt/signoz-config"
 
-# User Management - Plus besoin de ansible_user
+# User Management
 signoz_user: "signoz"
-signoz_group: "signoz"
-signoz_deployment_user: "{{ ansible_env.USER | default('ubuntu') }}"
 
 # Network Configuration - Detection intelligente IP
 vm_ip: "{{ override_vm_ip | default(ansible_default_ipv4.address) | default('localhost') }}"
 
 # Docker Configuration
 docker_compose_path: "{{ signoz_install_dir }}/deploy/docker"
-docker_compose_override_path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
 signoz_container_recreate: "smart"

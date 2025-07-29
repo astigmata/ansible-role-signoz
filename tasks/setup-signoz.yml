@@ -1,35 +1,10 @@
-- name: Get current username for deployment
-  command: whoami
-  register: current_user
-  changed_when: false
-  become: false
-
-- name: Set deployment user variable
-  set_fact:
-    deployment_user: "{{ current_user.stdout }}"
-
-- name: Create SigNoz system user
-  user:
-    name: "{{ signoz_user }}"
-    groups: docker
-    append: true
-    shell: /bin/bash
-    system: true
-    create_home: true
-
-- name: Add deployment user to docker group
-  user:
-    name: "{{ deployment_user }}"
-    groups: docker
-    append: true
-
 # Directory Structure
 - name: Create SigNoz directories
   file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ deployment_user }}"
-    group: "{{ deployment_user }}"
+    owner: "{{ signoz_user }}"
+    group: "{{ signoz_user }}"
     mode: '0755'
   loop:
     - "{{ signoz_install_dir }}"
@@ -50,16 +25,16 @@
 - name: Set proper ownership of SigNoz directory
   file:
     path: "{{ signoz_install_dir }}"
-    owner: "{{ deployment_user }}"
-    group: "{{ deployment_user }}"
+    owner: "{{ signoz_user }}"
+    group: "{{ signoz_user }}"
     recurse: true
 
 - name: Create SigNoz environment file
   template:
     src: templates/signoz.env.j2
     dest: "{{ docker_compose_path }}/.env"
-    owner: "{{ deployment_user }}"
-    group: "{{ deployment_user }}"
+    owner: "{{ signoz_user }}"
+    group: "{{ signoz_user }}"
     mode: '0644'
   notify: restart signoz
 
