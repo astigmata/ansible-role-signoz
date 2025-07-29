@@ -14,5 +14,6 @@ signoz_deployment_user: "{{ ansible_env.USER | default('ubuntu') }}"
 vm_ip: "{{ ansible_default_ipv4.address | default('localhost') }}"
 
 # Docker Configuration
-docker_compose_path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
+docker_compose_path: "{{ signoz_install_dir }}/deploy/docker"
+docker_compose_override_path: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup"
 signoz_container_recreate: "smart"

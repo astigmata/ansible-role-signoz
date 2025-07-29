@@ -100,15 +100,15 @@
 
 # Clean up any conflicting Docker networks
 - name: Remove existing signoz-net network if it conflicts
-  command: docker network rm signoz-net
+  shell: docker network rm signoz-net || true
   become_user: "{{ deployment_user }}"
   become: true
-  ignore_errors: true
+  changed_when: false
 
 # SigNoz Deployment
 - name: Ensure Docker Compose file exists
   stat:
-    path: "{{ docker_compose_path }}/docker-compose.yaml"
+    path: "{{ signoz_install_dir }}/deploy/docker/docker-compose.yaml"
   register: compose_file
   failed_when: not compose_file.stat.exists
 
