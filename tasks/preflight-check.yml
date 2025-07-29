@@ -19,3 +19,21 @@
       - python3-requests
       - python3-docker
     state: present
+
+- name: Check if Docker is installed and accessible
+  command: docker --version
+  register: docker_check
+  failed_when: docker_check.rc != 0
+  changed_when: false
+
+- name: Check if Docker Compose is available
+  command: docker compose version
+  register: compose_check
+  failed_when: compose_check.rc != 0
+  changed_when: false
+
+- name: Verify current user can access Docker
+  command: docker ps
+  register: docker_access_check
+  failed_when: docker_access_check.rc != 0
+  changed_when: false
