@@ -13,11 +13,6 @@
   delay: 10
   ignore_errors: true
 
-- name: Display SigNoz health status
-  debug:
-    msg: "SigNoz Query Service: {{ 'OK' if query_service_health.status == 200 else 'FAILED' }}"
-  when: query_service_health.status is defined
-
 - name: Test OTEL Collector gRPC endpoint
   wait_for:
     host: localhost
@@ -27,10 +22,6 @@
     state: started
   register: otel_grpc_health
   ignore_errors: true
-
-- name: Display OTEL gRPC status
-  debug:
-    msg: "OTEL gRPC (4317): {{ 'OK' if not otel_grpc_health.failed else 'FAILED: ' + otel_grpc_health.msg | default('Port 4317 not accessible') }}"
 
 - name: Test OTEL Collector HTTP endpoint
   wait_for:
@@ -42,21 +33,10 @@
   register: otel_http_health
   ignore_errors: true
 
-- name: Display OTEL HTTP status
-  debug:
-    msg: "OTEL HTTP (4318): {{ 'OK' if not otel_http_health.failed else 'FAILED: ' + otel_http_health.msg | default('Port 4318 not accessible') }}"
-
 - name: Get SigNoz container status
   command: docker ps --filter name=signoz --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}"
-  become_user: "{{ signoz_user }}"
-  become: true
   register: container_status
   ignore_errors: true
-
-- name: Display container status
-  debug:
-    msg: "{{ container_status.stdout_lines }}"
-  when: container_status.stdout_lines is defined
 
 - name: Create SigNoz monitoring script
   copy:
@@ -77,30 +57,3 @@
       df -h {{ signoz_data_dir }}
     dest: /usr/local/bin/signoz-status
     mode: '0755'
-  become: true
-
-- name: Display deployment summary
-  debug:
-    msg: |
-      ==========================================
-      SigNoz v{{ signoz_version }} Deployment Complete!
-      ==========================================
-
-      Access URLs:
-      - Web UI: http://localhost:8080
-      - Web UI (VM): http://{{ vm_ip }}:8080
-      - OpenTelemetry gRPC: http://localhost:4317
-      - OpenTelemetry HTTP: http://localhost:4318
-
-      Management Commands:
-      - Container Status: /usr/local/bin/signoz-status
-      - Logs: sg docker -c "docker logs signoz"
-      - Restart: cd {{ docker_compose_path }} && sg docker -c "docker compose restart"
-
-      Data Directories:
-      - Installation: {{ signoz_install_dir }}
-      - Data: {{ signoz_data_dir }}
-
-      Note: SigNoz v0.91+ uses unified architecture (single container)
-      ==========================================
-  when: container_status.rc == 0
