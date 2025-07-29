@@ -48,7 +48,7 @@
 
 - name: Get SigNoz container status
   command: docker ps --filter name=signoz --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}"
-  become_user: "{{ deployment_user | default(signoz_deployment_user) }}"
+  become_user: "{{ signoz_user }}"
   become: true
   register: container_status
   ignore_errors: true

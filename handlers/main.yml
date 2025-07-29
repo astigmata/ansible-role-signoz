@@ -14,7 +14,7 @@
   shell: |
     cd {{ docker_compose_path }}
     sg docker -c "docker compose restart"
-  become_user: "{{ deployment_user | default(signoz_deployment_user) }}"
+  become_user: "{{ signoz_user }}"
   become: true
   ignore_errors: true
 
