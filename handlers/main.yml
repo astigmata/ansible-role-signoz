@@ -11,7 +11,7 @@
   shell: |
     cd {{ signoz_install_dir }}/deploy/docker/clickhouse-setup
     docker compose restart
-  become_user: vagrant
+  become_user: "{{ ansible_user }}"
   ignore_errors: true
 
 - name: restart docker

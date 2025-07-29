@@ -9,9 +9,9 @@
     system: true
     create_home: true
 
-- name: Add vagrant user to docker group
+- name: Add {{ ansible_user }} user to docker group
   user:
-    name: vagrant
+    name: "{{ ansible_user }}"
     groups: docker
     append: true
 
@@ -20,8 +20,8 @@
   file:
     path: "{{ item }}"
     state: directory
-    owner: vagrant
-    group: vagrant
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0755'
   loop:
     - "{{ signoz_install_dir }}"
@@ -43,8 +43,8 @@
 - name: Set proper ownership of SigNoz directory
   file:
     path: "{{ signoz_install_dir }}"
-    owner: vagrant
-    group: vagrant
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     recurse: true
 
 # Environment Configuration
@@ -52,8 +52,8 @@
   template:
     src: templates/signoz.env.j2
     dest: "{{ signoz_install_dir }}/deploy/docker/clickhouse-setup/.env"
-    owner: vagrant
-    group: vagrant
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0644'
   notify: restart signoz
 
@@ -82,7 +82,7 @@
     pull: missing
     recreate: always
     remove_orphans: true
-  become_user: vagrant
+  become_user: "{{ ansible_user }}"
   register: signoz_deployment
 
 - name: Display deployment results
