@@ -36,12 +36,14 @@
     append: true
   become: true
 
-- name: Test Docker access for deployment user
-  command: docker ps
+- name: Test Docker access for deployment user (with retry)
+  shell: sg docker -c "docker ps"
   become_user: "{{ deployment_user }}"
   become: true
   register: docker_test
-  failed_when: docker_test.rc != 0
+  retries: 3
+  delay: 2
+  until: docker_test.rc == 0
 
 # Directory Structure
 - name: Create SigNoz directories
