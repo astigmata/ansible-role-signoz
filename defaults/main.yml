@@ -10,8 +10,8 @@ signoz_user: "signoz"
 signoz_group: "signoz"
 signoz_deployment_user: "{{ ansible_env.USER | default('ubuntu') }}"
 
-# Network Configuration
-vm_ip: "{{ ansible_default_ipv4.address | default('localhost') }}"
+# Network Configuration - Detection intelligente IP
+vm_ip: "{{ override_vm_ip | default(ansible_default_ipv4.address) | default('localhost') }}"
 
 # Docker Configuration
 docker_compose_path: "{{ signoz_install_dir }}/deploy/docker"
