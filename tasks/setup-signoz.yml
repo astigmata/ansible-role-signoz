@@ -44,12 +44,11 @@
   register: compose_file
   failed_when: not compose_file.stat.exists
 
-- name: Deploy SigNoz with Docker Compose (using shell with sg)
-  shell: |
-    cd {{ docker_compose_path }}
-    sg docker -c "docker compose up -d --remove-orphans"
-  args:
-    chdir: "{{ docker_compose_path }}"
+- name: Deploy SigNoz with Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}"
+    remove_orphans: true
+    state: present
   register: signoz_deployment
 
 - name: Display deployment results
